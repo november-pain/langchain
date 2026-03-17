@@ -16,7 +16,7 @@ from typing import (
 )
 
 from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_core.messages import AIMessage, AnyMessage, SystemMessage, ToolMessage
+from langchain_core.messages import AIMessage, BaseMessage, SystemMessage, ToolMessage
 from langchain_core.tools import BaseTool
 from langgraph._internal._runnable import RunnableCallable
 from langgraph.constants import END, START
@@ -484,7 +484,7 @@ def _get_can_jump_to(middleware: AgentMiddleware[Any, Any], hook_name: str) -> l
 
 
 def _supports_provider_strategy(
-    model: str | BaseChatModel, tools: list[BaseTool | dict[str, Any]] | None = None
+    model: str | BaseChatModel, tools: Sequence[BaseTool | dict[str, Any]] | None = None
 ) -> bool:
     """Check if a model supports provider-specific structured output.
 
@@ -1660,7 +1660,7 @@ def _resolve_jump(
 
 
 def _fetch_last_ai_and_tool_messages(
-    messages: list[AnyMessage],
+    messages: Sequence[BaseMessage],
 ) -> tuple[AIMessage | None, list[ToolMessage]]:
     """Return the last AI message and any subsequent tool messages.
 

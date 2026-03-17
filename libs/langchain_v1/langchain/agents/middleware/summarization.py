@@ -2,13 +2,13 @@
 
 import uuid
 import warnings
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from functools import partial
 from typing import Any, Literal, cast
 
 from langchain_core.messages import (
     AIMessage,
-    AnyMessage,
+    BaseMessage,
     MessageLikeRepresentation,
     RemoveMessage,
     ToolMessage,
@@ -366,7 +366,7 @@ class SummarizationMiddleware(AgentMiddleware[AgentState[ResponseT], ContextT, R
         }
 
     def _should_summarize_based_on_reported_tokens(
-        self, messages: list[AnyMessage], threshold: float
+        self, messages: Sequence[BaseMessage], threshold: float
     ) -> bool:
         """Check if reported token usage from last AIMessage exceeds threshold."""
         last_ai_message = next(
@@ -384,7 +384,7 @@ class SummarizationMiddleware(AgentMiddleware[AgentState[ResponseT], ContextT, R
             return True
         return False
 
-    def _should_summarize(self, messages: list[AnyMessage], total_tokens: int) -> bool:
+    def _should_summarize(self, messages: Sequence[BaseMessage], total_tokens: int) -> bool:
         """Determine whether summarization should run for the current token usage."""
         if not self._trigger_conditions:
             return False
@@ -412,7 +412,7 @@ class SummarizationMiddleware(AgentMiddleware[AgentState[ResponseT], ContextT, R
                     return True
         return False
 
-    def _determine_cutoff_index(self, messages: list[AnyMessage]) -> int:
+    def _determine_cutoff_index(self, messages: Sequence[BaseMessage]) -> int:
         """Choose cutoff index respecting retention configuration."""
         kind, value = self.keep
         if kind in {"tokens", "fraction"}:
@@ -424,7 +424,7 @@ class SummarizationMiddleware(AgentMiddleware[AgentState[ResponseT], ContextT, R
             return self._find_safe_cutoff(messages, _DEFAULT_MESSAGES_TO_KEEP)
         return self._find_safe_cutoff(messages, cast("int", value))
 
-    def _find_token_based_cutoff(self, messages: list[AnyMessage]) -> int | None:
+    def _find_token_based_cutoff(self, messages: Sequence[BaseMessage]) -> int | None:
         """Find cutoff index based on target token retention."""
         if not messages:
             return 0
@@ -517,7 +517,7 @@ class SummarizationMiddleware(AgentMiddleware[AgentState[ResponseT], ContextT, R
         ]
 
     @staticmethod
-    def _ensure_message_ids(messages: list[AnyMessage]) -> None:
+    def _ensure_message_ids(messages: Sequence[BaseMessage]) -> None:
         """Ensure all messages have unique IDs for the add_messages reducer."""
         for msg in messages:
             if msg.id is None:
@@ -525,16 +525,16 @@ class SummarizationMiddleware(AgentMiddleware[AgentState[ResponseT], ContextT, R
 
     @staticmethod
     def _partition_messages(
-        conversation_messages: list[AnyMessage],
+        conversation_messages: Sequence[BaseMessage],
         cutoff_index: int,
-    ) -> tuple[list[AnyMessage], list[AnyMessage]]:
+    ) -> tuple[Sequence[BaseMessage], Sequence[BaseMessage]]:
         """Partition messages into those to summarize and those to preserve."""
         messages_to_summarize = conversation_messages[:cutoff_index]
         preserved_messages = conversation_messages[cutoff_index:]
 
         return messages_to_summarize, preserved_messages
 
-    def _find_safe_cutoff(self, messages: list[AnyMessage], messages_to_keep: int) -> int:
+    def _find_safe_cutoff(self, messages: Sequence[BaseMessage], messages_to_keep: int) -> int:
         """Find safe cutoff point that preserves AI/Tool message pairs.
 
         Returns the index where messages can be safely cut without separating
@@ -550,7 +550,7 @@ class SummarizationMiddleware(AgentMiddleware[AgentState[ResponseT], ContextT, R
         return self._find_safe_cutoff_point(messages, target_cutoff)
 
     @staticmethod
-    def _find_safe_cutoff_point(messages: list[AnyMessage], cutoff_index: int) -> int:
+    def _find_safe_cutoff_point(messages: Sequence[BaseMessage], cutoff_index: int) -> int:
         """Find a safe cutoff point that doesn't split AI/Tool message pairs.
 
         If the message at `cutoff_index` is a `ToolMessage`, search backward for the
@@ -585,7 +585,7 @@ class SummarizationMiddleware(AgentMiddleware[AgentState[ResponseT], ContextT, R
         # orphaned tool responses
         return idx
 
-    def _create_summary(self, messages_to_summarize: list[AnyMessage]) -> str:
+    def _create_summary(self, messages_to_summarize: Sequence[BaseMessage]) -> str:
         """Generate summary for the given messages.
 
         Args:
@@ -611,7 +611,7 @@ class SummarizationMiddleware(AgentMiddleware[AgentState[ResponseT], ContextT, R
         except Exception as e:
             return f"Error generating summary: {e!s}"
 
-    async def _acreate_summary(self, messages_to_summarize: list[AnyMessage]) -> str:
+    async def _acreate_summary(self, messages_to_summarize: Sequence[BaseMessage]) -> str:
         """Generate summary for the given messages.
 
         Args:
@@ -637,13 +637,13 @@ class SummarizationMiddleware(AgentMiddleware[AgentState[ResponseT], ContextT, R
         except Exception as e:
             return f"Error generating summary: {e!s}"
 
-    def _trim_messages_for_summary(self, messages: list[AnyMessage]) -> list[AnyMessage]:
+    def _trim_messages_for_summary(self, messages: Sequence[BaseMessage]) -> Sequence[BaseMessage]:
         """Trim messages to fit within summary generation limits."""
         try:
             if self.trim_tokens_to_summarize is None:
                 return messages
             return cast(
-                "list[AnyMessage]",
+                "Sequence[BaseMessage]",
                 trim_messages(
                     messages,
                     max_tokens=self.trim_tokens_to_summarize,

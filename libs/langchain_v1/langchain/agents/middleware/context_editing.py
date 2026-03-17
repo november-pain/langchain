@@ -16,7 +16,6 @@ from typing import Literal
 
 from langchain_core.messages import (
     AIMessage,
-    AnyMessage,
     BaseMessage,
     ToolMessage,
 )
@@ -46,7 +45,7 @@ class ContextEdit(Protocol):
 
     def apply(
         self,
-        messages: list[AnyMessage],
+        messages: list[BaseMessage],
         *,
         count_tokens: TokenCounter,
     ) -> None:
@@ -78,7 +77,7 @@ class ClearToolUsesEdit(ContextEdit):
 
     def apply(
         self,
-        messages: list[AnyMessage],
+        messages: list[BaseMessage],
         *,
         count_tokens: TokenCounter,
     ) -> None:
